@@ -1,0 +1,98 @@
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.providers.aer import QasmSimulator
+from qiskit import execute
+import numpy as np
+
+def create_quantum_coin_circuit():
+    # Create quantum and classical registers
+    qr = QuantumRegister(2, 'q')
+    cr = ClassicalRegister(2, 'c')
+    circuit = QuantumCircuit(qr, cr)
+    
+    # Apply H-gate to first qubit (first coin)
+    circuit.h(qr[0])
+    
+    # For double toss, apply H-gate to second qubit
+    circuit.h(qr[1])
+    
+    # Measure both qubits
+    circuit.measure(qr, cr)
+    
+    return circuit
+
+def run_coin_toss(double_toss=False, shots=1):
+    # Create and get the circuit
+    circuit = create_quantum_coin_circuit()
+    
+    # Use Aer's qasm_simulator
+    simulator = QasmSimulator()
+    
+    while True:
+        # Execute the circuit on the simulator
+        job = execute(circuit, simulator, shots=shots)
+        result = job.result()
+        counts = result.get_counts(circuit)
+        
+        # Get the single outcome (since shots=1)
+        outcome = list(counts.keys())[0]
+        
+        # For single toss, we only care about the first qubit
+        if not double_toss:
+            return '0' if outcome[0] == '0' else '1'
+        
+        # For double toss, we continue until we get 00 or 11
+        if outcome in ['00', '11']:
+            return outcome
+        # If we got 01 or 10, continue the loop for another toss
+
+def play_quantum_coin_game():
+    # Get user input for game mode
+    while True:
+        mode = input("Enter game mode (1 for single toss, 2 for double toss): ")
+        if mode in ['1', '2']:
+            break
+        print("Invalid input. Please enter 1 or 2.")
+    
+    double_toss = (mode == '2')
+    
+    # Run the coin toss
+    result = run_coin_toss(double_toss)
+    
+    # Interpret results
+    if not double_toss:
+        print(f"Coin toss result: {'Heads' if result == '0' else 'Tails'}")
+    else:
+        if result == '00':
+            print("Result: Both coins Heads!")
+        else:  # '11'
+            print("Result: Both coins Tails!")
+
+# Example usage:
+if __name__ == "__main__":
+    print("Welcome to Quantum Coin Toss!")
+    print("Mode 1: Single coin toss (H-gate on one qubit)")
+    print("Mode 2: Double coin toss (H-gates on both qubits, continues until both match)")
+    
+    while True:
+        play_quantum_coin_game()
+        
+        # Ask if user wants to play again
+        again = input("\nPlay again? (y/n): ").lower()
+        if again != 'y':
+            break
+    
+    print("Thanks for playing Quantum Coin Toss!")
+
+"""
+Game Modes:
+1. Single Coin Toss:
+   - Uses only the first qubit
+   - 0 = Heads, 1 = Tails
+   - Single H-gate creates perfect 50/50 probability
+
+2. Double Coin Toss:
+   - Uses both qubits
+   - Continues tossing until both coins match (00 or 11)
+   - Two H-gates create independent random outcomes
+   - Automatically retries on non-matching results (01 or 10)
+"""
